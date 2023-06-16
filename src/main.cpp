@@ -1,5 +1,6 @@
 #include <cstring>
 #include <string>
+#include <format>
 #include <memory>
 
 #include <switch.h>
@@ -19,9 +20,9 @@ class MasterVolumeGui: public tsl::Gui {
         }
 
         virtual tsl::elm::Element* createUI() override {
-            auto frame = new tsl::elm::OverlayFrame(APP_TITLE, APP_VERSION);
+            auto *frame = new tsl::elm::OverlayFrame(APP_TITLE, APP_VERSION);
 
-            auto list = new tsl::elm::List();
+            auto *list = new tsl::elm::List();
 
             this->header = new tsl::elm::CategoryHeader("Master volume (max. 2)");
             this->slider = new tsl::elm::TrackBar("");
@@ -52,10 +53,7 @@ class MasterVolumeGui: public tsl::Gui {
         }
 
         virtual void update() override {
-            std::string buf(0x20, '\0');
-            std::snprintf(buf.data(), buf.size(), "Volume: %.2f\n", this->master_volume);
-
-            this->header->setText(buf);
+            this->header->setText(std::format("Volume: {:.2f}\n", this->master_volume));
         }
 
     private:
