@@ -15,9 +15,55 @@ class MasterVolumeGui: public tsl::Gui {
         constexpr static float MasterVolumeDefault = 1.0f;
         constexpr static float MasterVolumeExp     = 2.0f;
 
+        constexpr static auto ConfigDirPath  = "/config/MasterVolume";
+        constexpr static auto ConfigFilePath = "/config/MasterVolume/config.bin";
+
     public:
         MasterVolumeGui() {
-            audctlGetSystemOutputMasterVolume(&this->master_volume);
+            bool has_vol = false;
+            tsl::hlp::doWithSDCardHandle([this, &has_vol] {
+                auto *fs = fsdevGetDeviceFileSystem("sdmc");
+                if (!fs)
+                    return;
+
+                FsFile fp;
+                if (auto rc = fsFsOpenFile(fs, MasterVolumeGui::ConfigFilePath, FsOpenMode_Read, &fp); R_FAILED(rc))
+                    return;
+                tsl::hlp::ScopeGuard guard([&fp] { fsFileClose(&fp); });
+
+                float vol;
+                u64 read;
+                if (auto rc = fsFileRead(&fp, 0, &vol, sizeof(vol), FsReadOption_None, &read); R_FAILED(rc) || read != sizeof(vol))
+                    return;
+
+                this->master_volume = vol, has_vol = true;
+            });
+
+            if (has_vol)
+                audctlSetSystemOutputMasterVolume(this->master_volume);
+            else
+                audctlGetSystemOutputMasterVolume(&this->master_volume);
+        }
+
+        virtual ~MasterVolumeGui() override {
+            tsl::hlp::doWithSDCardHandle([this] {
+                auto *fs = fsdevGetDeviceFileSystem("sdmc");
+                if (!fs)
+                    return;
+
+                if (auto rc = fsFsCreateDirectory(fs, MasterVolumeGui::ConfigDirPath); R_FAILED(rc) && R_DESCRIPTION(rc) != 2)
+                    return;
+
+                if (auto rc = fsFsCreateFile(fs, MasterVolumeGui::ConfigFilePath, sizeof(this->master_volume), 0); R_FAILED(rc) && R_DESCRIPTION(rc) != 2)
+                    return;
+
+                FsFile fp;
+                if (auto rc = fsFsOpenFile(fs, MasterVolumeGui::ConfigFilePath, FsOpenMode_Write, &fp); R_FAILED(rc))
+                    return;
+                tsl::hlp::ScopeGuard guard([&fp] { fsFileClose(&fp); });
+
+                fsFileWrite(&fp, 0, &this->master_volume, sizeof(this->master_volume), FsWriteOption_None);
+            });
         }
 
         virtual tsl::elm::Element* createUI() override {
