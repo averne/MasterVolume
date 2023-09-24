@@ -11,8 +11,9 @@
 class MasterVolumeGui: public tsl::Gui {
     public:
         constexpr static float MasterVolumeMin     = 0.0f;
-        constexpr static float MasterVolumeMax     = 2.0f;
+        constexpr static float MasterVolumeMax     = 5.0f;
         constexpr static float MasterVolumeDefault = 1.0f;
+        constexpr static float MasterVolumeExp     = 2.0f;
 
     public:
         MasterVolumeGui() {
@@ -27,9 +28,9 @@ class MasterVolumeGui: public tsl::Gui {
             this->header = new tsl::elm::CategoryHeader("Master volume (max. 2)");
             this->slider = new tsl::elm::TrackBar("");
 
-            this->slider->setProgress(this->master_volume * 100.0f / (MasterVolumeGui::MasterVolumeMax - MasterVolumeGui::MasterVolumeMin));
+            this->slider->setProgress(this->vol_to_pos(this->master_volume));
             this->slider->setValueChangedListener([this](std::uint8_t val) {
-                this->master_volume = static_cast<float>(val) * (MasterVolumeGui::MasterVolumeMax - MasterVolumeGui::MasterVolumeMin) / 100.0f;
+                this->master_volume = this->pos_to_vol(val);
                 audctlSetSystemOutputMasterVolume(this->master_volume);
             });
 
@@ -37,7 +38,7 @@ class MasterVolumeGui: public tsl::Gui {
             this->reset_button->setClickListener([this](std::uint64_t keys) {
                 if (keys & HidNpadButton_A) {
                     this->master_volume = MasterVolumeGui::MasterVolumeDefault;
-                    this->slider->setProgress(this->master_volume * 100.0f / (MasterVolumeGui::MasterVolumeMax - MasterVolumeGui::MasterVolumeMin));
+                    this->slider->setProgress(this->vol_to_pos(this->master_volume));
                     audctlSetSystemOutputMasterVolume(this->master_volume);
                     return true;
                 }
@@ -55,6 +56,24 @@ class MasterVolumeGui: public tsl::Gui {
         virtual void update() override {
             this->header->setText(std::format("Volume: {:.2f}\n", this->master_volume));
         }
+
+    private:
+        constexpr float pos_to_vol(std::uint8_t pos) {
+            constexpr float delta = MasterVolumeGui::MasterVolumeMax - MasterVolumeGui::MasterVolumeMin;
+            constexpr float exp   = 1.0f/MasterVolumeGui::MasterVolumeExp;
+            constexpr float mult  = std::pow(delta, exp) / 100.0f;
+
+            return std::pow(static_cast<float>(pos) * mult, MasterVolumeGui::MasterVolumeExp)
+                + MasterVolumeGui::MasterVolumeMin;
+        };
+
+        constexpr std::uint8_t vol_to_pos(float vol) {
+            constexpr float delta = MasterVolumeGui::MasterVolumeMax - MasterVolumeGui::MasterVolumeMin;
+            constexpr float exp   = 1.0f/MasterVolumeGui::MasterVolumeExp;
+            constexpr float mult  = 100.0f / std::pow(delta, exp);
+
+            return std::pow(vol - MasterVolumeGui::MasterVolumeMin, exp) * mult;
+        };
 
     private:
         tsl::elm::CategoryHeader *header;
