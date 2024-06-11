@@ -9,7 +9,7 @@ TOPDIR           ?=    $(CURDIR)
 APP_TITLE         =    MasterVolume
 APP_AUTHOR        =    averne
 APP_ICON          =
-APP_VERSION       =    1.1.0
+APP_VERSION       =    1.1.1
 APP_TITLEID       =
 
 TARGET            =    MasterVolume

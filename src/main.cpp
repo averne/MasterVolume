@@ -10,10 +10,10 @@
 
 class MasterVolumeGui: public tsl::Gui {
     public:
-        constexpr static float MasterVolumeMin     = 0.0f;
-        constexpr static float MasterVolumeMax     = 5.0f;
+        constexpr static float MasterVolumeMin     = 0.125f;
+        constexpr static float MasterVolumeMax     = 8.0f;
         constexpr static float MasterVolumeDefault = 1.0f;
-        constexpr static float MasterVolumeExp     = 2.0f;
+        constexpr static float MasterVolumeExp     = 3.0f;
 
         constexpr static auto ConfigDirPath  = "/config/MasterVolume";
         constexpr static auto ConfigFilePath = "/config/MasterVolume/config.bin";
