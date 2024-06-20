@@ -14,6 +14,7 @@ class MasterVolumeGui: public tsl::Gui {
         constexpr static float MasterVolumeMax     = 8.0f;
         constexpr static float MasterVolumeDefault = 1.0f;
         constexpr static float MasterVolumeExp     = 3.0f;
+        constexpr static auto  SinkSwitchTimeout   = 500ms;
 
         constexpr static auto ConfigDirPath  = "/config/MasterVolume";
         constexpr static auto ConfigFilePath = "/config/MasterVolume/config.bin";
@@ -71,36 +72,50 @@ class MasterVolumeGui: public tsl::Gui {
 
             auto *list = new tsl::elm::List();
 
-            this->header = new tsl::elm::CategoryHeader("Master volume (max. 2)");
-            this->slider = new tsl::elm::TrackBar("");
+            this->mvol_header = new tsl::elm::CategoryHeader("Master volume (max. 8)");
+            this->mvol_slider = new tsl::elm::TrackBar("");
 
-            this->slider->setProgress(this->vol_to_pos(this->master_volume));
-            this->slider->setValueChangedListener([this](std::uint8_t val) {
+            this->mvol_slider->setProgress(this->vol_to_pos(this->master_volume));
+            this->mvol_slider->setValueChangedListener([this](std::uint8_t val) {
                 this->master_volume = this->pos_to_vol(val);
                 audctlSetSystemOutputMasterVolume(this->master_volume);
             });
 
-            this->reset_button = new tsl::elm::ListItem("Reset");
-            this->reset_button->setClickListener([this](std::uint64_t keys) {
+            this->mvol_reset_button = new tsl::elm::ListItem("Reset");
+            this->mvol_reset_button->setClickListener([this](std::uint64_t keys) {
                 if (keys & HidNpadButton_A) {
                     this->master_volume = MasterVolumeGui::MasterVolumeDefault;
-                    this->slider->setProgress(this->vol_to_pos(this->master_volume));
+                    this->mvol_slider->setProgress(this->vol_to_pos(this->master_volume));
                     audctlSetSystemOutputMasterVolume(this->master_volume);
                     return true;
                 }
                 return false;
             });
 
-            list->addItem(this->header);
-            list->addItem(this->slider);
-            list->addItem(this->reset_button);
+            this->sink_header = new tsl::elm::CategoryHeader("Audio sink");
+
+            this->sink_speakers_button = new tsl::elm::ListItem("Force speaker output");
+            this->sink_speakers_button->setClickListener([this](std::uint64_t keys) {
+                if (keys & HidNpadButton_A) {
+                    constexpr auto timeout = std::chrono::duration_cast<std::chrono::nanoseconds>(MasterVolumeGui::SinkSwitchTimeout).count();
+                    audctlSetDefaultTarget(AudioTarget_Speaker, timeout, timeout);
+                    return true;
+                }
+                return false;
+            });
+
+            list->addItem(this->mvol_header);
+            list->addItem(this->mvol_slider);
+            list->addItem(this->mvol_reset_button);
+            list->addItem(this->sink_header);
+            list->addItem(this->sink_speakers_button);
 
             frame->setContent(list);
             return frame;
         }
 
         virtual void update() override {
-            this->header->setText(std::format("Volume: {:.2f}\n", this->master_volume));
+            this->mvol_header->setText(std::format("Volume: {:.2f}\n", this->master_volume));
         }
 
     private:
@@ -122,9 +137,11 @@ class MasterVolumeGui: public tsl::Gui {
         };
 
     private:
-        tsl::elm::CategoryHeader *header;
-        tsl::elm::TrackBar       *slider;
-        tsl::elm::ListItem       *reset_button;
+        tsl::elm::CategoryHeader *mvol_header;
+        tsl::elm::TrackBar       *mvol_slider;
+        tsl::elm::ListItem       *mvol_reset_button;
+        tsl::elm::CategoryHeader *sink_header;
+        tsl::elm::ListItem       *sink_speakers_button;
 
         float master_volume = 0.0f;
 };
