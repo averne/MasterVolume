@@ -9,7 +9,7 @@ TOPDIR           ?=    $(CURDIR)
 APP_TITLE         =    MasterVolume
 APP_AUTHOR        =    averne
 APP_ICON          =
-APP_VERSION       =    1.2.0
+APP_VERSION       =    1.2.1
 APP_TITLEID       =
 
 TARGET            =    MasterVolume
@@ -57,6 +57,7 @@ LIBS_TARGET       =    $(shell find $(addsuffix /lib,$(CUSTOM_LIBS)) -name "*.a"
 NX_TARGET         =    $(if $(OUT:=), $(OUT)/$(TARGET).$(EXTENSION), .$(OUT)/$(TARGET).$(EXTENSION))
 ELF_TARGET        =    $(if $(OUT:=), $(OUT)/$(TARGET).elf, .$(OUT)/$(TARGET).elf)
 NACP_TARGET       =    $(if $(OUT:=), $(OUT)/$(TARGET).nacp, .$(OUT)/$(TARGET).nacp)
+DIST_TARGET       =    $(OUT)/$(APP_TITLE)-$(APP_VERSION).zip
 
 DEFINE_FLAGS      =    $(addprefix -D,$(DEFINES))
 INCLUDE_FLAGS     =    $(addprefix -I$(CURDIR)/,$(INCLUDES)) $(foreach dir,$(CUSTOM_LIBS),-I$(CURDIR)/$(dir)/include) \
@@ -96,7 +97,7 @@ endif
 
 .SUFFIXES:
 
-.PHONY: all libs clean mrproper $(CUSTOM_LIBS)
+.PHONY: all libs clean mrproper dist $(CUSTOM_LIBS)
 
 all: $(NX_TARGET)
 
@@ -110,6 +111,18 @@ $(NX_TARGET): $(ROMFS_TARGET) $(APP_ICON) $(NACP_TARGET) $(ELF_TARGET)
 	@mkdir -p $(dir $@)
 	@elf2nro $(ELF_TARGET) $@ $(NROFLAGS) > /dev/null
 	@echo "Built" $(notdir $@)
+
+dist: $(DIST_TARGET)
+
+$(DIST_TARGET): | all
+	@rm -rf $(OUT)/MasterVolume-*-*.zip
+	@mkdir -p $(OUT)/switch/.overlays
+	@cp $(NX_TARGET) $(OUT)/switch/.overlays
+	@mkdir -p $(OUT)/atmosphere/exefs_patches/audio_mastervolume
+	@cp misc/patches/*.ips $(OUT)/atmosphere/exefs_patches/audio_mastervolume || :
+	@7z a $@ ./$(OUT)/atmosphere ./$(OUT)/switch >/dev/null
+	@rm -r $(OUT)/atmosphere $(OUT)/switch
+	@echo Compressed release to $@
 
 $(ELF_TARGET): $(OFILES) $(LIBS_TARGET) | libs
 	@echo " LD  " $@
