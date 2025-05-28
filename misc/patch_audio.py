@@ -95,8 +95,7 @@ def find_clamp(text):
                     state = 1
             case 1:
                 if inst.id == cs.arm64.ARM64_INS_FMOV:
-                    state = 2 if reg0.type == cs.arm64.ARM64_OP_REG and reg0.value.reg == cs.arm64.ARM64_REG_S1 and \
-                                 reg1.type == cs.arm64.ARM64_OP_FP  and reg1.value.fp  == 1.0 \
+                    state = 2 if reg0.type == cs.arm64.ARM64_OP_REG and reg1.type == cs.arm64.ARM64_OP_FP and reg1.value.fp == 1.0 \
                               else 0
                     val = reg0.value.reg
             case 2:
@@ -106,8 +105,8 @@ def find_clamp(text):
                               else 0
             case 3:
                 if inst.id == cs.arm64.ARM64_INS_FCSEL and \
-                        reg1.type == cs.arm64.ARM64_OP_REG and reg1.value.reg in (cs.arm64.ARM64_REG_S0, val) and \
-                        reg2.type == cs.arm64.ARM64_OP_REG and reg2.value.reg in (cs.arm64.ARM64_REG_S0, val) and \
+                        reg1.type == cs.arm64.ARM64_OP_REG and reg1.value.reg == val and \
+                        reg2.type == cs.arm64.ARM64_OP_REG and reg2.value.reg == cs.arm64.ARM64_REG_S0 and \
                         inst.cc == cs.arm64.ARM64_CC_GT:
                     offsets.append(i)
                     state = 0
