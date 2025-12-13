@@ -77,7 +77,7 @@ def find_clamp(text):
         except StopIteration:
             continue
 
-        if inst.group in (cs.arm64.ARM64_GRP_JUMP, cs.arm64.ARM64_GRP_CALL, cs.arm64.ARM64_GRP_RET):
+        if set(inst.groups) & {cs.arm64.ARM64_GRP_JUMP, cs.arm64.ARM64_GRP_CALL, cs.arm64.ARM64_GRP_RET}:
             state = 0
 
         match len(inst.operands):
