@@ -3,7 +3,7 @@
 import sys, ctypes, hashlib
 from pathlib import Path
 from lz4.block import decompress
-import capstone as cs
+import capstone as cs, keystone as ks
 
 
 class NsoHeader(ctypes.Structure):
@@ -105,10 +105,11 @@ def find_clamp(text):
                               else 0
             case 3:
                 if inst.id == cs.arm64.ARM64_INS_FCSEL and \
+                        reg0.type == cs.arm64.ARM64_OP_REG and \
                         reg1.type == cs.arm64.ARM64_OP_REG and reg1.value.reg == val and \
                         reg2.type == cs.arm64.ARM64_OP_REG and reg2.value.reg == cs.arm64.ARM64_REG_S0 and \
                         inst.cc == cs.arm64.ARM64_CC_GT:
-                    offsets.append(i)
+                    offsets.append((i, d.reg_name(reg0.value.reg)))
                     state = 0
 
     return offsets[0] if len(offsets) == 1 else None
@@ -150,12 +151,15 @@ def main(argc, argv):
         print("Failed to find clamp instruction")
         return
 
-    seq = b"\x01\x40\x20\x1e" # fmov s1,s0
+    off, reg = off
+
+    a = ks.Ks(ks.KS_ARCH_ARM64, ks.KS_MODE_LITTLE_ENDIAN)
+    seq, cnt = a.asm(f"fmov {reg}, s0")
 
     patch = b"PATCH"
     patch += (off + ctypes.sizeof(NsoHeader)).to_bytes(3, byteorder="big")
-    patch += len(seq).to_bytes(2, byteorder="big")
-    patch += seq
+    patch += cnt.to_bytes(2, byteorder="big")
+    patch += bytes(seq)
     patch += b"EOF"
 
     dest = p.parent / (build_id + ".ips")
