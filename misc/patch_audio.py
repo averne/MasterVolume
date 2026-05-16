@@ -158,7 +158,7 @@ def main(argc, argv):
 
     patch = b"PATCH"
     patch += (off + ctypes.sizeof(NsoHeader)).to_bytes(3, byteorder="big")
-    patch += cnt.to_bytes(2, byteorder="big")
+    patch += len(seq).to_bytes(2, byteorder="big")
     patch += bytes(seq)
     patch += b"EOF"
 
